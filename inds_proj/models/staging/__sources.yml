@@ -1,0 +1,26 @@
+version: 2
+
+# Try using these source definitions instead!
+sources:
+  - name: inds_raw
+    schema: "{{ target.schema }}"
+    description: Industrial maintenance datasets loaded from seeds
+    tables:
+      - name: asset_master
+        description: Master data for all assets
+      - name: environmental_conditions
+        description: Environmental conditions affecting equipment
+      - name: equipment_specs
+        description: Specifications for equipment
+      - name: maintenance_logs
+        description: Maintenance activity logs
+      - name: sensor_telemetry
+        description: Telemetry data from sensors
+      - name: service_contracts
+        description: Service contract details
+      - name: spare_parts_usage
+        description: Usage records for spare parts
+      - name: usage_cycles
+        description: Usage cycles for equipment
+      - name: work_orders
+        description: Work order records
