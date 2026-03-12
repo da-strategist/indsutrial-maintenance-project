@@ -1,0 +1,132 @@
+version: 2
+
+sources:
+  - name: inds_raw
+    description: "Seeded industrial maintenance datasets for analytics."
+    schema: "{{ target.schema }}"
+    tables:
+      - name: asset_master
+        description: "Master data for all assets, including asset ID, specification, location, installation date, and status."
+        columns:
+          - name: asset_id
+            tests: [not_null, unique]
+          - name: spec_id
+            tests: [not_null]
+          - name: location_region
+            tests: [not_null]
+          - name: installation_date
+            tests: [not_null]
+          - name: status
+            tests:
+              - not_null
+              - accepted_values:
+                  values: ["Active", "Maintenance", "Retired"]
+      - name: environmental_conditions
+        description: "Environmental sensor readings (temperature, humidity, dust) linked to assets, timestamped."
+        columns:
+          - name: env_id
+            tests: [not_null, unique]
+          - name: asset_id
+            tests: [not_null]
+          - name: timestamp
+            tests: [not_null]
+      - name: equipment_specs
+        description: "Equipment specifications, including type, manufacturer, capacity, and expected lifecycle."
+        columns:
+          - name: spec_id
+            tests: [not_null, unique]
+          - name: equipment_type
+            tests: [not_null]
+          - name: manufacturer
+            tests: [not_null]
+          - name: rated_capacity_tons
+            tests: [not_null]
+          - name: expected_lifecycle_years
+            tests: [not_null]
+      - name: maintenance_logs
+        description: "Maintenance activity logs, including downtime, cost, and completion date for each asset."
+        columns:
+          - name: maintenance_id
+            tests: [not_null, unique]
+          - name: workorder_id
+            tests: [not_null]
+          - name: asset_id
+            tests: [not_null]
+          - name: completion_date
+            tests: [not_null]
+          - name: downtime_hours
+            tests: [not_null]
+          - name: maintenance_cost_eur
+            tests: [not_null]
+      - name: sensor_telemetry
+        description: "Time-series telemetry from asset sensors (temperature, vibration, pressure)."
+        columns:
+          - name: telemetry_id
+            tests: [not_null, unique]
+          - name: asset_id
+            tests: [not_null]
+          - name: timestamp
+            tests: [not_null]
+      - name: service_contracts
+        description: "Service contract details for assets, including type, duration, and annual value."
+        columns:
+          - name: contract_id
+            tests: [not_null, unique]
+          - name: asset_id
+            tests: [not_null]
+          - name: contract_type
+            tests:
+              - not_null
+              - accepted_values:
+                  values: ["Basic", "Preventive", "Full Service"]
+          - name: contract_start
+            tests: [not_null]
+          - name: contract_end
+            tests: [not_null]
+          - name: annual_value_eur
+            tests: [not_null]
+      - name: spare_parts_usage
+        description: "Records of spare parts used in maintenance, including quantity and cost."
+        columns:
+          - name: usage_id
+            tests: [not_null, unique]
+          - name: workorder_id
+            tests: [not_null]
+          - name: part_id
+            tests: [not_null]
+          - name: quantity
+            tests: [not_null]
+          - name: cost_eur
+            tests: [not_null]
+      - name: usage_cycles
+        description: "Asset usage cycles, with start time, duration, and load percentage."
+        columns:
+          - name: cycle_id
+            tests: [not_null, unique]
+          - name: asset_id
+            tests: [not_null]
+          - name: cycle_start
+            tests: [not_null]
+          - name: duration_minutes
+            tests: [not_null]
+          - name: load_percentage
+            tests: [not_null]
+      - name: work_orders
+        description: "Work order records for maintenance, including type, priority, and open date."
+        columns:
+          - name: workorder_id
+            tests: [not_null, unique]
+          - name: asset_id
+            tests: [not_null]
+          - name: open_date
+            tests: [not_null]
+          - name: maintenance_type
+            tests:
+              - not_null
+              - accepted_values:
+                  values: ["Preventive", "Corrective", "Inspection"]
+          - name: priority
+            tests:
+              - not_null
+              - accepted_values:
+                  values: ["High", "Medium", "Low"]

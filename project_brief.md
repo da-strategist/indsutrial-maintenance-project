@@ -131,11 +131,7 @@ Spare parts utilization
 - Phase 4: Implement advanced analytics (predictive maintenance, anomaly detection)
 - Phase 5: Dashboarding and business intelligence integration
 
-## Objectives
-- Centralize all industrial maintenance data in a single analytics warehouse (BigQuery)
-- Enable robust reporting on asset health, maintenance activities, and operational efficiency
-- Support data-driven decision making for maintenance planning and resource allocation
-- Lay the foundation for predictive maintenance and advanced analytics
+
 
 ## Metrics & KPIs
 - Mean Time Between Failures (MTBF)
