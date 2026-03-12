@@ -1,0 +1,27 @@
+version: 2
+
+models:
+  - name: stg_equipment_specs
+    description: "Staging model for equipment specifications. Cleans and standardizes equipment spec data."
+    columns:
+      - name: spec_id
+        description: "Unique identifier for each equipment specification."
+        tests:
+          - not_null
+          - unique
+      - name: equipment_type
+        description: "Type of equipment (e.g., Engine, Pump, Forklift)."
+        tests:
+          - not_null
+      - name: manufacturer
+        description: "Manufacturer of the equipment."
+        tests:
+          - not_null
+      - name: rated_capacity_tons
+        description: "Rated capacity in tons."
+        tests:
+          - not_null
+      - name: expected_lifecycle_years
+        description: "Expected lifecycle in years."
+        tests:
+          - not_null

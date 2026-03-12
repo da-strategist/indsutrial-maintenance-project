@@ -1,0 +1,37 @@
+version: 2
+
+models:
+  - name: stg_maintenance_logs
+    description: "Staging model for maintenance activity logs. Cleans and standardizes maintenance data."
+    columns:
+      - name: maintenance_id
+        description: "Unique identifier for each maintenance log."
+        tests:
+          - not_null
+          - unique
+      - name: workorder_id
+        description: "Foreign key to stg_work_orders."
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_work_orders')
+              field: workorder_id
+      - name: asset_id
+        description: "Foreign key to stg_asset_master."
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_asset_master')
+              field: asset_id
+      - name: completion_date
+        description: "Date maintenance was completed."
+        tests:
+          - not_null
+      - name: downtime_hours
+        description: "Downtime in hours for the maintenance event."
+        tests:
+          - not_null
+      - name: maintenance_cost_eur
+        description: "Cost of maintenance in euros."
+        tests:
+          - not_null

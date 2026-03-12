@@ -1,0 +1,36 @@
+version: 2
+
+models:
+  - name: stg_service_contracts
+    description: "Staging model for service contract details for assets. Cleans and standardizes contract data."
+    columns:
+      - name: contract_id
+        description: "Unique identifier for each service contract."
+        tests:
+          - not_null
+          - unique
+      - name: asset_id
+        description: "Foreign key to stg_asset_master."
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_asset_master')
+              field: asset_id
+      - name: contract_type
+        description: "Type of contract (Basic, Preventive, Full Service)."
+        tests:
+          - not_null
+          - accepted_values:
+              values: ["Basic", "Preventive", "Full Service"]
+      - name: contract_start
+        description: "Contract start date."
+        tests:
+          - not_null
+      - name: contract_end
+        description: "Contract end date."
+        tests:
+          - not_null
+      - name: annual_value_eur
+        description: "Annual contract value in euros."
+        tests:
+          - not_null

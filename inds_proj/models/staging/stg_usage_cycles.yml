@@ -1,0 +1,30 @@
+version: 2
+
+models:
+  - name: stg_usage_cycles
+    description: "Staging model for asset usage cycles. Cleans and standardizes usage cycle data."
+    columns:
+      - name: cycle_id
+        description: "Unique identifier for each usage cycle."
+        tests:
+          - not_null
+          - unique
+      - name: asset_id
+        description: "Foreign key to stg_asset_master."
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_asset_master')
+              field: asset_id
+      - name: cycle_start
+        description: "Start timestamp of the usage cycle."
+        tests:
+          - not_null
+      - name: duration_minutes
+        description: "Duration of the usage cycle in minutes."
+        tests:
+          - not_null
+      - name: load_percentage
+        description: "Load percentage during the cycle."
+        tests:
+          - not_null

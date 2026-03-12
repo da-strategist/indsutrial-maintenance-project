@@ -1,0 +1,34 @@
+version: 2
+
+models:
+  - name: stg_asset_master
+    description: "Staging model for asset master data. Standardizes and cleans asset information."
+    columns:
+      - name: asset_id
+        description: "Unique identifier for each asset."
+        tests:
+          - not_null
+          - unique
+      - name: spec_id
+        description: "Foreign key to equipment_specs."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: source('inds_raw', 'equipment_specs')
+                field: spec_id
+      - name: location_region
+        description: "Region where the asset is located."
+        tests:
+          - not_null
+      - name: installation_date
+        description: "Date the asset was installed."
+        tests:
+          - not_null
+      - name: status
+        description: "Current status of the asset (Active, Maintenance, Retired)."
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["Active", "Maintenance", "Retired"]
