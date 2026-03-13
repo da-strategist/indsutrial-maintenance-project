@@ -14,8 +14,9 @@ models:
         tests:
           - not_null
           - relationships:
-              to: ref('stg_asset_master')
-              field: asset_id
+              arguments:
+                to: ref('stg_asset_master')
+                field: asset_id
       - name: cycle_start
         description: "Start timestamp of the usage cycle."
         tests:

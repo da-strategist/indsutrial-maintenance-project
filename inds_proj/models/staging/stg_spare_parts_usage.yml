@@ -14,8 +14,9 @@ models:
         tests:
           - not_null
           - relationships:
-              to: ref('stg_work_orders')
-              field: workorder_id
+              arguments:
+                to: ref('stg_work_orders')
+                field: workorder_id
       - name: part_id
         description: "Identifier for the spare part used."
         tests:

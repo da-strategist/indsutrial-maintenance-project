@@ -3,7 +3,7 @@ version: 2
 sources:
   - name: inds_raw
     description: "Seeded industrial maintenance datasets for analytics."
-    schema: "{{ target.schema }}"
+    schema: "industrial_raw_raw"
     tables:
       - name: asset_master
         description: "Master data for all assets, including asset ID, specification, location, installation date, and status."
@@ -20,7 +20,8 @@ sources:
             tests:
               - not_null
               - accepted_values:
-                  values: ["Active", "Maintenance", "Retired"]
+                  arguments:
+                    values: ["Active", "Maintenance", "Retired"]
       - name: environmental_conditions
         description: "Environmental sensor readings (temperature, humidity, dust) linked to assets, timestamped."
         columns:
@@ -78,7 +79,8 @@ sources:
             tests:
               - not_null
               - accepted_values:
-                  values: ["Basic", "Preventive", "Full Service"]
+                  arguments:
+                    values: ["Basic", "Preventive", "Full Service"]
           - name: contract_start
             tests: [not_null]
           - name: contract_end
@@ -124,9 +126,11 @@ sources:
             tests:
               - not_null
               - accepted_values:
-                  values: ["Preventive", "Corrective", "Inspection"]
+                  arguments:
+                    values: ["Preventive", "Corrective", "Inspection"]
           - name: priority
             tests:
               - not_null
               - accepted_values:
-                  values: ["High", "Medium", "Low"]
+                  arguments:
+                    values: ["High", "Medium", "Low"]

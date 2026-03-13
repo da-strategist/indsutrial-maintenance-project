@@ -14,8 +14,9 @@ models:
         tests:
           - not_null
           - relationships:
-              to: ref('stg_asset_master')
-              field: asset_id
+              arguments:
+                to: ref('stg_asset_master')
+                field: asset_id
       - name: open_date
         description: "Date the work order was opened."
         tests:
@@ -25,10 +26,12 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values: ["Preventive", "Corrective", "Inspection"]
+              arguments:
+                values: ["Preventive", "Corrective", "Inspection"]
       - name: priority
         description: "Priority of the work order (High, Medium, Low)."
         tests:
           - not_null
           - accepted_values:
-              values: ["High", "Medium", "Low"]
+              arguments:
+                values: ["High", "Medium", "Low"]

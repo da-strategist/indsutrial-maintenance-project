@@ -14,14 +14,16 @@ models:
         tests:
           - not_null
           - relationships:
-              to: ref('stg_asset_master')
-              field: asset_id
+              arguments:
+                to: ref('stg_asset_master')
+                field: asset_id
       - name: contract_type
         description: "Type of contract (Basic, Preventive, Full Service)."
         tests:
           - not_null
           - accepted_values:
-              values: ["Basic", "Preventive", "Full Service"]
+              arguments:
+                values: ["Basic", "Preventive", "Full Service"]
       - name: contract_start
         description: "Contract start date."
         tests:
