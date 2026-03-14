@@ -115,13 +115,18 @@ Fact and dimension tables support performance analysis and reporting.
 
 Key models include:
 
-Asset health monitoring
+# Asset health monitoring
+    What is the current and historical health status of each asset?
+    What is the Mean Time Between Failures (MTBF) for each asset?
+    What is the Mean Time To Repair (MTTR) for each asset?
+    How many unplanned downtimes has each asset experienced?
+    What is the sensor anomaly rate for each asset?
 
-Maintenance event tracking
+# Maintenance event tracking
 
-Downtime cost analysis
+# Downtime cost analysis
 
-Spare parts utilization
+# Spare parts utilization
 
 
 ## Roadmap

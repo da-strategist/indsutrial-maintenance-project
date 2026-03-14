@@ -1,0 +1,26 @@
+version: 2
+
+sources:
+  - name: stg_asset_master
+    description: "Staging model containing asset metadata, status, and installation information for each asset."
+    tables:
+      - name: stg_asset_master
+        description: "Asset master data including asset_id, type, location, status, and installation date."
+
+  - name: stg_maintenance_logs
+    description: "Staging model containing all maintenance events, including failures, repairs, and downtime for each asset."
+    tables:
+      - name: stg_maintenance_logs
+        description: "Maintenance logs with event type, event date, repair completion, and downtime details."
+
+  - name: stg_work_orders
+    description: "Staging model containing work order details for planned and unplanned maintenance activities."
+    tables:
+      - name: stg_work_orders
+        description: "Work orders with asset linkage, type (planned/unplanned), open/close dates, and downtime info."
+
+  - name: stg_sensor_telemetry
+    description: "Staging model containing IoT sensor readings for each asset, including anomaly flags."
+    tables:
+      - name: stg_sensor_telemetry
+        description: "Sensor telemetry data with asset_id, timestamp, sensor values, and anomaly detection flags."
