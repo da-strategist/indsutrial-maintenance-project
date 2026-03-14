@@ -1,0 +1,221 @@
+version: 2
+
+models:
+  - name: stg_asset_master
+    description: Cleaned and typed staging model for asset master data.
+    columns:
+      - name: asset_id
+        description: Primary key for each asset.
+        tests:
+          - unique
+          - not_null
+      - name: spec_id
+        description: Foreign key to equipment_specs.
+        tests:
+          - not_null
+      - name: location_region
+        description: Geographic region where the asset is installed.
+        tests:
+          - not_null
+      - name: installation_date
+        description: Date the asset was installed.
+        tests:
+          - not_null
+      - name: status
+        description: Current operational status of the asset.
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['Active', 'Inactive', 'Decommissioned']
+
+  - name: stg_environmental_conditions
+    description: Cleaned and typed staging model for environmental condition readings.
+    columns:
+      - name: env_id
+        description: Primary key for each environmental reading.
+        tests:
+          - unique
+          - not_null
+      - name: asset_id
+        description: Foreign key to the asset being monitored.
+        tests:
+          - not_null
+      - name: recorded_at
+        description: Timestamp of the environmental reading.
+        tests:
+          - not_null
+      - name: ambient_temp_c
+        description: Ambient temperature in degrees Celsius.
+      - name: humidity_pct
+        description: Relative humidity as a percentage.
+      - name: dust_index
+        description: Dust level index at the asset location.
+
+  - name: stg_equipment_specs
+    description: Cleaned and typed staging model for equipment specifications.
+    columns:
+      - name: spec_id
+        description: Primary key for each equipment specification record.
+        tests:
+          - unique
+          - not_null
+      - name: equipment_type
+        description: Type of equipment (e.g., Engine, Pump).
+        tests:
+          - not_null
+      - name: manufacturer
+        description: Name of the equipment manufacturer.
+        tests:
+          - not_null
+      - name: rated_capacity_tons
+        description: Rated capacity of the equipment in tonnes.
+      - name: expected_lifecycle_years
+        description: Expected operational lifetime of the equipment in years.
+
+  - name: stg_maintenance_logs
+    description: Cleaned and typed staging model for maintenance activity logs.
+    columns:
+      - name: maintenance_id
+        description: Primary key for each maintenance log entry.
+        tests:
+          - unique
+          - not_null
+      - name: workorder_id
+        description: Foreign key to the related work order.
+        tests:
+          - not_null
+      - name: asset_id
+        description: Foreign key to the asset that was maintained.
+        tests:
+          - not_null
+      - name: completion_date
+        description: Date the maintenance activity was completed.
+        tests:
+          - not_null
+      - name: downtime_hours
+        description: Number of hours the asset was offline during maintenance.
+      - name: maintenance_cost_eur
+        description: Total cost of the maintenance activity in EUR.
+
+  - name: stg_sensor_telemetry
+    description: Cleaned and typed staging model for sensor telemetry data.
+    columns:
+      - name: telemetry_id
+        description: Primary key for each telemetry reading.
+        tests:
+          - unique
+          - not_null
+      - name: asset_id
+        description: Foreign key to the asset the sensor belongs to.
+        tests:
+          - not_null
+      - name: recorded_at
+        description: Timestamp of the sensor reading.
+        tests:
+          - not_null
+      - name: temperature_c
+        description: Measured temperature in degrees Celsius.
+      - name: vibration_mm_s
+        description: Measured vibration in millimetres per second.
+      - name: pressure_bar
+        description: Measured pressure in bar.
+
+  - name: stg_service_contracts
+    description: Cleaned and typed staging model for service contract data.
+    columns:
+      - name: contract_id
+        description: Primary key for each service contract.
+        tests:
+          - unique
+          - not_null
+      - name: asset_id
+        description: Foreign key to the asset covered by the contract.
+        tests:
+          - not_null
+      - name: contract_type
+        description: Type of service contract (e.g., Preventive, Basic).
+        tests:
+          - not_null
+      - name: contract_start
+        description: Start date of the service contract.
+        tests:
+          - not_null
+      - name: contract_end
+        description: End date of the service contract.
+        tests:
+          - not_null
+      - name: annual_value_eur
+        description: Annual monetary value of the contract in EUR.
+
+  - name: stg_spare_parts_usage
+    description: Cleaned and typed staging model for spare parts usage records.
+    columns:
+      - name: usage_id
+        description: Primary key for each spare parts usage record.
+        tests:
+          - unique
+          - not_null
+      - name: workorder_id
+        description: Foreign key to the work order that consumed the parts.
+        tests:
+          - not_null
+      - name: part_id
+        description: Identifier for the spare part used.
+        tests:
+          - not_null
+      - name: quantity
+        description: Number of parts consumed.
+        tests:
+          - not_null
+      - name: cost_eur
+        description: Total cost of the parts used in EUR.
+
+  - name: stg_usage_cycles
+    description: Cleaned and typed staging model for equipment usage cycle data.
+    columns:
+      - name: cycle_id
+        description: Primary key for each usage cycle record.
+        tests:
+          - unique
+          - not_null
+      - name: asset_id
+        description: Foreign key to the asset that ran the cycle.
+        tests:
+          - not_null
+      - name: cycle_start
+        description: Timestamp marking the start of the usage cycle.
+        tests:
+          - not_null
+      - name: duration_minutes
+        description: Duration of the cycle in minutes.
+      - name: load_percentage
+        description: Load applied to the asset during the cycle as a percentage.
+
+  - name: stg_work_orders
+    description: Cleaned and typed staging model for work order records.
+    columns:
+      - name: workorder_id
+        description: Primary key for each work order.
+        tests:
+          - unique
+          - not_null
+      - name: asset_id
+        description: Foreign key to the asset the work order is for.
+        tests:
+          - not_null
+      - name: open_date
+        description: Date the work order was opened.
+        tests:
+          - not_null
+      - name: maintenance_type
+        description: Type of maintenance performed (e.g., Preventive, Corrective).
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['Preventive', 'Corrective', 'Emergency', 'Predictive']
+      - name: priority
+        description: Priority level of the work order.
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['High', 'Medium', 'Low']
