@@ -3,7 +3,7 @@ version: 2
 # Try using these source definitions instead!
 sources:
   - name: inds_raw
-    schema: "{{ target.schema }}"
+    schema: "{{ target.schema }}_raw"
     description: Industrial maintenance datasets loaded from seeds
     tables:
       - name: asset_master
