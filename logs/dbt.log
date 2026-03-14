@@ -1,0 +1,8 @@
+==================== 2026-03-12T12:39:11.611374Z | 019ce20e-dfed-7f13-aa59-d44e6f044368 ====================
+12:39:11.614206 [info ]: dbt-fusion 2.0.0-preview.148
+12:39:11.617095 [info ]: Started loading project
+12:39:11.619111 [info ]: Finished loading project [  0.00s]
+12:39:11.621067 [error]: dbt1001: Cannot open file /Users/djibril/Documents/Projects/Equip_maintenance_project/Industrial_maintenance/dbt_project.yml: Failed to open file: /Users/djibril/Documents/Projects/Equip_maintenance_project/Industrial_maintenance/dbt_project.yml: No such file or directory (os error 2): No such file or directory (os error 2)
+12:39:11.833096 [info ]: 
+==================== Execution Summary =====================
+Finished 'test' with 1 error [221ms]

@@ -1,0 +1,35 @@
+version: 2
+
+models:
+  - name: stg_environmental_conditions
+    description: "Staging model for environmental sensor readings linked to assets."
+    columns:
+      - name: env_id
+        description: "Unique identifier for each environmental reading."
+        tests:
+          - not_null
+          - unique
+      - name: asset_id
+        description: "Foreign key to stg_asset_master."
+        tests:
+          - not_null
+          - relationships:
+                arguments:
+                  to: ref('stg_asset_master')
+                  field: asset_id
+      - name: timestamp
+        description: "Timestamp of the reading."
+        tests:
+          - not_null
+      - name: ambient_temp_c
+        description: "Ambient temperature in Celsius."
+        tests:
+          - not_null
+      - name: humidity_pct
+        description: "Humidity percentage."
+        tests:
+          - not_null
+      - name: dust_index
+        description: "Dust index value."
+        tests:
+          - not_null

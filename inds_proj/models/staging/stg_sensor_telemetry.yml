@@ -1,0 +1,35 @@
+version: 2
+
+models:
+  - name: stg_sensor_telemetry
+    description: "Staging model for time-series telemetry from asset sensors. Cleans and standardizes telemetry data."
+    columns:
+      - name: telemetry_id
+        description: "Unique identifier for each telemetry record."
+        tests:
+          - not_null
+          - unique
+      - name: asset_id
+        description: "Foreign key to stg_asset_master."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_asset_master')
+                field: asset_id
+      - name: timestamp
+        description: "Timestamp of the telemetry reading."
+        tests:
+          - not_null
+      - name: temperature_c
+        description: "Temperature in Celsius."
+        tests:
+          - not_null
+      - name: vibration_mm_s
+        description: "Vibration in mm/s."
+        tests:
+          - not_null
+      - name: pressure_bar
+        description: "Pressure in bar."
+        tests:
+          - not_null

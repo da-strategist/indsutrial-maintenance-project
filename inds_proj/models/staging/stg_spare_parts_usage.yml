@@ -1,0 +1,31 @@
+version: 2
+
+models:
+  - name: stg_spare_parts_usage
+    description: "Staging model for records of spare parts used in maintenance. Cleans and standardizes spare parts usage data."
+    columns:
+      - name: usage_id
+        description: "Unique identifier for each spare part usage record."
+        tests:
+          - not_null
+          - unique
+      - name: workorder_id
+        description: "Foreign key to stg_work_orders."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_work_orders')
+                field: workorder_id
+      - name: part_id
+        description: "Identifier for the spare part used."
+        tests:
+          - not_null
+      - name: quantity
+        description: "Quantity of the spare part used."
+        tests:
+          - not_null
+      - name: cost_eur
+        description: "Cost of the spare part used in euros."
+        tests:
+          - not_null
