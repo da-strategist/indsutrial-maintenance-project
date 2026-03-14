@@ -3,7 +3,7 @@ version: 2
 sources:
   - name: inds_raw
     description: "Seeded industrial maintenance datasets for analytics."
-    schema: "industrial_raw_raw"
+    schema: "inds_data_raw_layer"
     tables:
       - name: asset_master
         description: "Master data for all assets, including asset ID, specification, location, installation date, and status."

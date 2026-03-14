@@ -9,17 +9,23 @@ clean-targets:
   - "target"
   - "dbt_packages"
 
-seeds:
-  # Builds seeds into '<your_schema_name>_raw'
-  inds_proj:
-    +schema: raw
-
 models:
   inds_proj:
     # Materialize staging models as views, and marts as tables
     staging:
+      +dataset: stg_layer
       +materialized: view
     intermidiate:
+      +dataset: int_layer
       +materialized: view
     marts:
+      +dataset: mart_layer
       +materialized: table
+
+seeds:
+  # Builds seeds into '<your_schema_name>_raw'
+  inds_proj:
+    +schema: raw_layer
+
+
+
