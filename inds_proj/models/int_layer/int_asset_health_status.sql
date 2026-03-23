@@ -37,4 +37,4 @@ status_history as (
     left join asset_status a on ad.asset_id = a.asset_id
     group by ad.asset_id, ad.day, a.asset_status
 )
-select * from status_history;
+select * from status_history

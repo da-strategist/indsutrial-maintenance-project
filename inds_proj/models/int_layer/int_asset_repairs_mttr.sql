@@ -25,4 +25,4 @@ repairs_per_day as (
     left join repairs r on ad.asset_id = r.asset_id and r.failure_date = ad.day
     group by ad.asset_id, ad.day
 )
-select * from repairs_per_day;
+select * from repairs_per_day
