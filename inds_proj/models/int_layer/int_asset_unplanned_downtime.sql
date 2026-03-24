@@ -1,28 +1,27 @@
 
-with unplanned as (
+with corrective_events as (
+    -- Corrective maintenance = reactive/unplanned work triggered by asset failure
+    -- 'Corrective' is the maintenance_type value used in stg_work_orders
     select
         asset_id,
-        open_date as downtime_date
+        workorder_id,
+        open_date       as event_date,
+        priority
     from {{ ref('stg_work_orders') }}
-    where lower(maintenance_type) = 'unplanned'
+    where maintenance_type = 'Corrective'
+        and open_date is not null
 ),
-dates as (
-    select distinct open_date as day
-    from {{ ref('stg_work_orders') }}
-    where open_date is not null
-),
-asset_days as (
-    select u.asset_id, d.day
-    from (select distinct asset_id from unplanned) u
-    cross join dates d
-),
-downtime_per_day as (
+
+unplanned_summary as (
+    -- Summarise unplanned downtime events per asset
     select
-        ad.asset_id,
-        ad.day,
-        count(u.downtime_date) as unplanned_downtime_count
-    from asset_days ad
-    left join unplanned u on ad.asset_id = u.asset_id and u.downtime_date = ad.day
-    group by ad.asset_id, ad.day
+        asset_id,
+        count(*)                                            as total_unplanned_events,
+        count(case when priority = 'High' then 1 end)      as high_priority_events,
+        min(event_date)                                     as first_unplanned_date,
+        max(event_date)                                     as last_unplanned_date
+    from corrective_events
+    group by asset_id
 )
-select * from downtime_per_day;
+
+select * from unplanned_summary
