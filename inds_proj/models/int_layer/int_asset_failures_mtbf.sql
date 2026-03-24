@@ -1,6 +1,6 @@
 
 with corrective_failures as (
-    -- Each corrective work order represents an asset failure event
+    -- Each corrective work order represents a failure event
     select
         asset_id,
         open_date as failure_date,
@@ -11,7 +11,7 @@ with corrective_failures as (
 ),
 
 asset_install as (
-    -- Installation date serves as time-zero anchor for the first failure interval
+    -- Installation date anchors the first failure interval
     select
         asset_id,
         installation_date
@@ -20,8 +20,9 @@ asset_install as (
 ),
 
 failure_intervals as (
-    -- For the first failure: measure from installation date
-    -- For subsequent failures: measure from the previous failure date
+    -- One row per failure event per asset
+    -- prev_event_date = installation date for the first failure, previous failure date otherwise
+    -- Mart aggregates avg(days_since_prev_event) for any date range to compute MTBF
     select
         f.asset_id,
         f.failure_date,
@@ -40,19 +41,9 @@ failure_intervals as (
         ) as days_since_prev_event
     from corrective_failures f
     left join asset_install a using (asset_id)
-),
-
-mtbf as (
-    -- Average all inter-failure intervals (including time-to-first-failure) per asset
-    select
-        asset_id,
-        count(*)                    as total_failures,
-        avg(days_since_prev_event)  as mtbf_days,
-        min(failure_date)           as first_failure_date,
-        max(failure_date)           as last_failure_date
-    from failure_intervals
-    where days_since_prev_event is not null
-    group by asset_id
 )
 
-select * from mtbf
+select *
+
+from failure_intervals
+where days_since_prev_event is not null

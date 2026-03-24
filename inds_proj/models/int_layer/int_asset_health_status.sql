@@ -8,45 +8,51 @@ with assets as (
     from {{ ref('stg_asset_master') }}
 ),
 
-mtbf as (
+mtbf_agg as (
+    -- Aggregate event-grain MTBF model to asset level for the health snapshot
     select
         asset_id,
-        total_failures,
-        mtbf_days,
-        first_failure_date,
-        last_failure_date
+        count(*)                    as total_failures,
+        avg(days_since_prev_event)  as mtbf_days,
+        min(failure_date)           as first_failure_date,
+        max(failure_date)           as last_failure_date
     from {{ ref('int_asset_failures_mtbf') }}
+    group by asset_id
 ),
 
-mttr as (
+mttr_agg as (
+    -- Aggregate event-grain MTTR model to asset level
     select
         asset_id,
-        mttr_hours,
-        total_repairs,
-        total_downtime_hours
+        avg(downtime_hours)         as mttr_hours,
+        sum(downtime_hours)         as total_downtime_hours,
+        count(*)                    as total_repairs
     from {{ ref('int_asset_repairs_mttr') }}
+    group by asset_id
 ),
 
-downtime as (
+downtime_agg as (
+    -- Aggregate event-grain unplanned downtime model to asset level
     select
         asset_id,
-        total_unplanned_events,
-        high_priority_events
+        count(*)                                        as total_unplanned_events,
+        count(case when priority = 'High' then 1 end)  as high_priority_events
     from {{ ref('int_asset_unplanned_downtime') }}
+    group by asset_id
 ),
 
-anomalies as (
+anomaly_agg as (
+    -- Aggregate daily anomaly model to asset level
     select
         asset_id,
-        anomaly_rate,
-        anomaly_count,
-        total_readings
+        sum(total_readings)                             as total_readings,
+        sum(anomaly_count)                              as anomaly_count,
+        safe_divide(sum(anomaly_count), sum(total_readings)) as anomaly_rate
     from {{ ref('int_asset_sensor_anomalies') }}
+    group by asset_id
 ),
 
 enriched as (
-    -- Combine all reliability signals onto each asset
-    -- coalesce to 0 for assets with no failures or sensor data yet
     select
         a.asset_id,
         a.status                                        as operational_status,
@@ -61,16 +67,15 @@ enriched as (
         coalesce(an.anomaly_rate, 0)                    as anomaly_rate,
         coalesce(an.anomaly_count, 0)                   as anomaly_count
     from assets a
-    left join mtbf     m  using (asset_id)
-    left join mttr     r  using (asset_id)
-    left join downtime d  using (asset_id)
-    left join anomalies an using (asset_id)
+    left join mtbf_agg    m  using (asset_id)
+    left join mttr_agg    r  using (asset_id)
+    left join downtime_agg d using (asset_id)
+    left join anomaly_agg  an using (asset_id)
 ),
 
 health_scored as (
     -- Health classification based on three independent failure signals
-    -- Thresholds are based on operational risk heuristics and should be revisited
-    -- as benchmark data accumulates:
+    -- Thresholds are operational heuristics; revisit as benchmark data accumulates:
     --   Critical : >= 5 failures  OR  avg repair >= 24h  OR  anomaly rate >= 10%
     --   At Risk  : >= 2 failures  OR  avg repair >= 8h   OR  anomaly rate >= 5%
     --   Healthy  : all signals below At Risk thresholds

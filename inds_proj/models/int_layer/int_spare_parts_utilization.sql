@@ -1,29 +1,21 @@
 
 with parts_usage as (
-    -- Link spare parts to assets via work orders (parts table has no direct asset_id)
+    -- Link spare parts to assets and dates via work orders
+    -- stg_spare_parts_usage has no asset_id; resolved through workorder_id
+    -- open_date added to enable time-based slicing in the mart
     select
-        wo.asset_id,
-        sp.part_id,
         sp.workorder_id,
+        sp.part_id,
         sp.quantity,
-        sp.cost_eur
+        sp.cost_eur,
+        wo.asset_id,
+        wo.open_date,
+        wo.maintenance_type
     from {{ ref('stg_spare_parts_usage') }} sp
     inner join {{ ref('stg_work_orders') }} wo
         on sp.workorder_id = wo.workorder_id
-),
-
-parts_by_asset_and_part as (
-    -- Grain: one row per asset + part combination
-    -- Captures which parts are consumed most frequently per asset
-    select
-        asset_id,
-        part_id,
-        count(distinct workorder_id)    as work_orders_using_part,
-        sum(quantity)                   as total_quantity_used,
-        sum(cost_eur)                   as total_parts_cost_eur,
-        avg(cost_eur)                   as avg_cost_per_use
-    from parts_usage
-    group by asset_id, part_id
 )
 
-select * from parts_by_asset_and_part
+-- One row per work order + part combination
+-- Mart aggregates by period, part, manufacturer, or region via dim_asset join
+select * from parts_usage

@@ -1,26 +1,248 @@
 version: 2
 
-sources:
-  - name: stg_asset_master
-    description: "Staging model containing asset metadata, status, and installation information for each asset."
-    tables:
-      - name: stg_asset_master
-        description: "Asset master data including asset_id, type, location, status, and installation date."
+models:
+  - name: int_asset_failures_mtbf
+    description: >
+      Failure interval grain — one row per corrective failure event per asset.
+      Captures the gap between each failure and the preceding event (or installation date
+      for the first failure). The mart aggregates avg(days_since_prev_event) over any
+      date window to compute MTBF for a given period or dimension.
+    columns:
+      - name: asset_id
+        description: Unique identifier for the asset.
+      - name: failure_date
+        description: Date the corrective work order was opened (failure onset).
+      - name: failure_seq
+        description: Sequential failure number for this asset ordered by failure_date (1 = first failure).
+      - name: prev_event_date
+        description: Date of the preceding event; installation_date for the first failure, previous failure_date otherwise.
+      - name: days_since_prev_event
+        description: Calendar days between failure_date and prev_event_date. Used by the mart to compute MTBF.
 
-  - name: stg_maintenance_logs
-    description: "Staging model containing all maintenance events, including failures, repairs, and downtime for each asset."
-    tables:
-      - name: stg_maintenance_logs
-        description: "Maintenance logs with event type, event date, repair completion, and downtime details."
+  - name: int_asset_repairs_mttr
+    description: >
+      Repair event grain — one row per completed corrective repair per asset.
+      downtime_hours is the repair duration. The mart aggregates avg(downtime_hours)
+      over any date window or dimension to compute MTTR for a given period.
+    columns:
+      - name: asset_id
+        description: Unique identifier for the asset.
+      - name: workorder_id
+        description: Work order associated with this repair event.
+      - name: maintenance_id
+        description: Maintenance log entry linked to this repair.
+      - name: completion_date
+        description: Date the repair was completed.
+      - name: downtime_hours
+        description: Hours the asset was offline during this repair. Used by the mart to compute MTTR.
+      - name: maintenance_cost_eur
+        description: Labour and maintenance cost for this repair event in EUR.
+      - name: priority
+        description: Work order priority level inherited from stg_work_orders.
 
-  - name: stg_work_orders
-    description: "Staging model containing work order details for planned and unplanned maintenance activities."
-    tables:
-      - name: stg_work_orders
-        description: "Work orders with asset linkage, type (planned/unplanned), open/close dates, and downtime info."
+  - name: int_asset_unplanned_downtime
+    description: >
+      Work order grain — one row per corrective (unplanned) work order per asset.
+      Corrective maintenance_type in stg_work_orders represents reactive, unplanned
+      failure-driven work. The mart aggregates count(*) over any date window or
+      dimension to compute unplanned downtime event counts.
+    columns:
+      - name: asset_id
+        description: Unique identifier for the asset.
+      - name: workorder_id
+        description: Unique identifier for the corrective work order.
+      - name: event_date
+        description: Date the work order was opened (failure onset / downtime start).
+      - name: priority
+        description: Work order priority level (e.g. High, Medium, Low).
 
-  - name: stg_sensor_telemetry
-    description: "Staging model containing IoT sensor readings for each asset, including anomaly flags."
-    tables:
-      - name: stg_sensor_telemetry
-        description: "Sensor telemetry data with asset_id, timestamp, sensor values, and anomaly detection flags."
+  - name: int_asset_sensor_anomalies
+    description: >
+      Asset + date grain — one row per asset per day of sensor readings.
+      Anomalies are flagged against static operational thresholds: temperature > 90°C,
+      vibration > 4.5 mm/s (ISO 10816), pressure > 10 bar.
+      The mart aggregates by week/month or joins to dim_asset for manufacturer
+      and equipment_type drill-down.
+    columns:
+      - name: asset_id
+        description: Unique identifier for the asset.
+      - name: reading_date
+        description: Calendar date of the sensor readings (derived from timestamp).
+      - name: total_readings
+        description: Total sensor readings recorded for this asset on this date.
+      - name: anomaly_count
+        description: Readings that breached at least one operational threshold on this date.
+      - name: anomaly_rate
+        description: Proportion of readings flagged as anomalies (anomaly_count / total_readings).
+      - name: high_temp_count
+        description: Readings where temperature exceeded 90°C.
+      - name: high_vibration_count
+        description: Readings where vibration exceeded 4.5 mm/s.
+      - name: high_pressure_count
+        description: Readings where pressure exceeded 10 bar.
+
+  - name: int_asset_utilization
+    description: >
+      Asset + date grain — one row per asset per day of recorded usage cycles.
+      daily_utilization_rate = total runtime as a proportion of 1,440 minutes (24h),
+      assuming 24/7 availability. The mart aggregates by week/month or joins to
+      dim_asset for manufacturer and equipment_type drill-down.
+    columns:
+      - name: asset_id
+        description: Unique identifier for the asset.
+      - name: cycle_date
+        description: Calendar date of the usage cycles.
+      - name: total_cycles
+        description: Number of usage cycles recorded on this date.
+      - name: total_runtime_minutes
+        description: Cumulative operating time in minutes on this date.
+      - name: total_runtime_hours
+        description: Cumulative operating time in hours on this date.
+      - name: avg_load_pct
+        description: Average load percentage across all cycles on this date.
+      - name: peak_load_pct
+        description: Maximum load percentage recorded in any single cycle on this date.
+      - name: daily_utilization_rate
+        description: Runtime as a proportion of 1,440 available minutes. Assumes 24/7 availability.
+
+  - name: int_asset_health_status
+    description: >
+      Asset grain snapshot — one row per asset reflecting current overall health.
+      Aggregates from int_asset_failures_mtbf, int_asset_repairs_mttr,
+      int_asset_unplanned_downtime, and int_asset_sensor_anomalies into a single
+      composite view. Derives a health classification (Healthy / At Risk / Critical)
+      from combined failure, repair, and sensor signals.
+    columns:
+      - name: asset_id
+        description: Unique identifier for the asset.
+      - name: operational_status
+        description: Current status as recorded in the asset master (e.g. Active, Inactive).
+      - name: location_region
+        description: Geographic region where the asset is deployed.
+      - name: installation_date
+        description: Date the asset was commissioned.
+      - name: total_failures
+        description: Total corrective failure events recorded (all time).
+      - name: mtbf_days
+        description: Mean time between failures in days (all-time average).
+      - name: mttr_hours
+        description: Mean time to repair in hours (all-time average).
+      - name: total_downtime_hours
+        description: Cumulative downtime hours from all corrective repairs.
+      - name: total_unplanned_events
+        description: Total count of unplanned (corrective) work orders.
+      - name: high_priority_events
+        description: Count of unplanned events flagged as High priority.
+      - name: anomaly_rate
+        description: Proportion of all-time sensor readings flagged as anomalies.
+      - name: anomaly_count
+        description: Total anomalous sensor readings across all time.
+      - name: health_status
+        description: >
+          Derived classification: Critical (>= 5 failures, or MTTR >= 24h, or anomaly rate >= 10%),
+          At Risk (>= 2 failures, or MTTR >= 8h, or anomaly rate >= 5%), Healthy otherwise.
+
+  - name: int_maintenance_events
+    description: >
+      Work order grain — one row per work order joined to its maintenance log entry.
+      Represents the full lifecycle of a maintenance event from open to close.
+      Work orders without a matching log are open or pending (completion fields null).
+      Serves as the backbone for int_downtime_costs.
+    columns:
+      - name: workorder_id
+        description: Unique identifier for the work order.
+      - name: asset_id
+        description: Asset the work order was raised against.
+      - name: open_date
+        description: Date the work order was opened (failure onset for corrective events).
+      - name: maintenance_type
+        description: Type of maintenance activity (e.g. Corrective, Preventive).
+      - name: priority
+        description: Work order priority level.
+      - name: maintenance_id
+        description: Linked maintenance log entry identifier. Null if no log exists.
+      - name: completion_date
+        description: Date the repair was completed. Null for open or pending work orders.
+      - name: downtime_hours
+        description: Hours the asset was offline during this event.
+      - name: maintenance_cost_eur
+        description: Labour and maintenance cost for this event in EUR.
+      - name: is_completed
+        description: True if a matching maintenance log entry exists with a completion date.
+      - name: days_to_close
+        description: Calendar days from open_date to completion_date. Null for incomplete events.
+
+  - name: int_downtime_costs
+    description: >
+      Work order grain — one row per completed maintenance event with full cost breakdown.
+      Combines labour/maintenance cost from int_maintenance_events with spare parts cost
+      from stg_spare_parts_usage. open_date and completion_date enable time-based slicing.
+      The mart joins to dim_asset for manufacturer and equipment_type drill-down.
+    columns:
+      - name: workorder_id
+        description: Unique identifier for the work order.
+      - name: asset_id
+        description: Asset the event was raised against.
+      - name: maintenance_type
+        description: Type of maintenance (Corrective / Preventive).
+      - name: open_date
+        description: Date the work order was opened. Use for time-based filtering in the mart.
+      - name: completion_date
+        description: Date the repair was completed.
+      - name: downtime_hours
+        description: Hours the asset was offline during this event.
+      - name: maintenance_cost_eur
+        description: Labour and maintenance cost for this event in EUR.
+      - name: spare_parts_cost_eur
+        description: Total cost of spare parts consumed against this work order in EUR.
+      - name: total_parts_consumed
+        description: Total quantity of spare parts consumed against this work order.
+      - name: total_cost_eur
+        description: Combined total of maintenance_cost_eur and spare_parts_cost_eur.
+
+  - name: int_spare_parts_utilization
+    description: >
+      Work order + part grain — one row per part consumed per work order.
+      Links stg_spare_parts_usage to assets and dates via stg_work_orders
+      (parts table has no direct asset_id or date). open_date enables time-based
+      slicing; the mart joins to dim_asset for manufacturer and equipment_type drill-down.
+    columns:
+      - name: workorder_id
+        description: Work order in which the part was consumed.
+      - name: part_id
+        description: Unique identifier for the spare part.
+      - name: quantity
+        description: Units of this part consumed in this work order.
+      - name: cost_eur
+        description: Cost of this part usage in EUR.
+      - name: asset_id
+        description: Asset the work order was raised against, resolved via workorder_id.
+      - name: open_date
+        description: Date the work order was opened. Use for time-based filtering in the mart.
+      - name: maintenance_type
+        description: Type of maintenance associated with the work order.
+
+  - name: int_dim_asset
+    description: >
+      Asset dimension pre-join — one row per asset combining stg_asset_master and
+      stg_equipment_specs via spec_id. Exposes manufacturer, equipment_type, and
+      technical specifications alongside asset identity and location attributes.
+      Feeds directly into dim_asset in the mart layer to enable dimensional
+      drill-down by manufacturer, equipment_type, and location_region across all fact tables.
+    columns:
+      - name: asset_id
+        description: Unique identifier for the asset. Primary key.
+      - name: location_region
+        description: Geographic region where the asset is deployed.
+      - name: installation_date
+        description: Date the asset was commissioned.
+      - name: status
+        description: Current operational status of the asset (e.g. Active, Inactive).
+      - name: equipment_type
+        description: Category of equipment (e.g. Compressor, Pump). Sourced from stg_equipment_specs.
+      - name: manufacturer
+        description: Equipment manufacturer name. Sourced from stg_equipment_specs.
+      - name: rated_capacity_tons
+        description: Rated operational capacity of the equipment in tonnes.
+      - name: expected_lifecycle_years
+        description: Manufacturer-specified expected service life in years.
