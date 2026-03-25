@@ -31,7 +31,7 @@ daily_anomalies as (
         reading_date,
         count(*)                                    as total_readings,
         sum(is_anomaly)                             as anomaly_count,
-        safe_divide(sum(is_anomaly), count(*))      as anomaly_rate,
+        round(safe_divide(sum(is_anomaly), count(*)),2)      as anomaly_rate,
         sum(is_high_temp)                           as high_temp_count,
         sum(is_high_vibration)                      as high_vibration_count,
         sum(is_high_pressure)                       as high_pressure_count

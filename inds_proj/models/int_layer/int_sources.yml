@@ -222,6 +222,52 @@ models:
       - name: maintenance_type
         description: Type of maintenance associated with the work order.
 
+  - name: int_dim_date
+    description: >
+      Date dimension — one row per calendar date from 2015-01-01 to 2030-12-31,
+      generated using BigQuery's GENERATE_DATE_ARRAY. Provides day, week, month,
+      quarter, and year attributes for time-based slicing and drill-down in all
+      mart fact tables. Feeds directly into dim_date in the mart layer.
+    columns:
+      - name: date_id
+        description: Integer surrogate key in YYYYMMDD format for efficient fact table joins.
+      - name: full_date
+        description: The calendar date (DATE type).
+      - name: day_of_month
+        description: Day number within the month (1–31).
+      - name: day_of_year
+        description: Day number within the year (1–366).
+      - name: day_of_week_num
+        description: Day of week as integer; 1=Sunday, 7=Saturday (BigQuery convention).
+      - name: day_name
+        description: Full day name (e.g. Monday).
+      - name: day_name_short
+        description: Abbreviated day name (e.g. Mon).
+      - name: week_of_year
+        description: ISO week number within the year (1–53).
+      - name: iso_year
+        description: ISO year corresponding to the ISO week (may differ from calendar year at year boundaries).
+      - name: month_number
+        description: Month number (1–12).
+      - name: month_name
+        description: Full month name (e.g. January).
+      - name: month_name_short
+        description: Abbreviated month name (e.g. Jan).
+      - name: year_month
+        description: Year and month formatted as YYYY-MM. Useful for monthly aggregations.
+      - name: quarter_number
+        description: Quarter number (1–4).
+      - name: quarter_name
+        description: Quarter label (e.g. Q1).
+      - name: year_quarter
+        description: Year and quarter formatted as YYYY-Q# (e.g. 2024-Q1). Useful for quarterly aggregations.
+      - name: year
+        description: Calendar year (e.g. 2024).
+      - name: is_weekend
+        description: True if the date falls on Saturday or Sunday.
+      - name: is_weekday
+        description: True if the date falls on Monday through Friday.
+
   - name: int_dim_asset
     description: >
       Asset dimension pre-join — one row per asset combining stg_asset_master and
