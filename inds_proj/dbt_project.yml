@@ -15,7 +15,7 @@ models:
     staging:
       +dataset: stg_layer
       +materialized: view
-    intermidiate:
+    intermediate:
       +dataset: int_layer
       +materialized: view
     marts:

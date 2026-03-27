@@ -12,7 +12,7 @@ At the same time, modern industrial systems generate large volumes of operationa
 
 This project demonstrates how analytics engineering can unify operational and maintenance data into a structured data warehouse that enables data-driven maintenance decisions.
 
-Problem Statement
+## Problem Statement
 
 Industrial operations experience significant inefficiencies due to:
 
@@ -28,7 +28,7 @@ Inefficient spare parts planning
 
 Without a centralized analytics platform, organizations struggle to proactively monitor asset performance and predict potential equipment failures.
 
-Project Objective
+## Project Objective
 
 The objective of this project is to design and implement a modern analytics platform that integrates operational and maintenance data to support predictive maintenance analysis.
 
@@ -44,7 +44,7 @@ Enable monitoring of asset performance and downtime costs
 
 Support decision-making through interactive Power BI dashboards
 
-Technical Architecture
+## Technical Architecture
 
 The project follows a modern analytics engineering architecture.
 
@@ -70,23 +70,11 @@ The analytics platform integrates multiple industrial data sources:
 
 IoT / Sensor Data
 
-Machine telemetry
-
-Temperature readings
-
-Vibration levels
-
-Pressure metrics
-
 Machine usage cycles
-
-Maintenance Systems
 
 Work orders
 
 Maintenance logs
-
-Technician reports
 
 Spare parts consumption
 
@@ -94,11 +82,6 @@ Asset Master Data
 
 Equipment specifications
 
-Installation dates
-
-Asset locations
-
-Service contracts
 
 Data Modeling Approach
 
@@ -115,13 +98,18 @@ Fact and dimension tables support performance analysis and reporting.
 
 Key models include:
 
-Asset health monitoring
+# Asset health monitoring
+    What is the current and historical health status of each asset?
+    What is the Mean Time Between Failures (MTBF) for each asset?
+    What is the Mean Time To Repair (MTTR) for each asset?
+    How many unplanned downtimes has each asset experienced?
+    What is the sensor anomaly rate for each asset?
 
-Maintenance event tracking
+# Maintenance event tracking
 
-Downtime cost analysis
+# Downtime cost analysis
 
-Spare parts utilization
+# Spare parts utilization
 
 
 ## Roadmap
