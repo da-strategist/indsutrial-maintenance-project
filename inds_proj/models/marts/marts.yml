@@ -1,0 +1,234 @@
+version: 2
+
+models:
+  - name: dim_asset
+    description: >
+      Asset dimension — one row per asset combining stg_asset_master and stg_equipment_specs.
+      Promoted from int_dim_asset. Serves as the primary join anchor across all fact tables
+      via asset_id, enabling drill-down by equipment_type, manufacturer, location_region,
+      and operational status in all Power BI reports.
+    columns:
+      - name: asset_id
+        description: Unique identifier for the asset. Primary key.
+      - name: location_region
+        description: Geographic region where the asset is deployed.
+      - name: installation_date
+        description: Date the asset was commissioned. Used to anchor MTBF first-failure intervals.
+      - name: status
+        description: Current operational status of the asset (e.g. Active, Inactive).
+      - name: equipment_type
+        description: Category of equipment (e.g. Compressor, Pump). Sourced from stg_equipment_specs.
+      - name: manufacturer
+        description: Equipment manufacturer name. Sourced from stg_equipment_specs.
+      - name: rated_capacity_tons
+        description: Rated operational capacity of the equipment in tonnes.
+      - name: expected_lifecycle_years
+        description: Manufacturer-specified expected service life in years.
+
+  - name: dim_date
+    description: >
+      Date dimension — one row per calendar date from 2015-01-01 to 2030-12-31.
+      Promoted from int_dim_date. Provides the full day / week / month / quarter / year
+      drill hierarchy for Power BI time intelligence. Fact tables join via date_id (YYYYMMDD integer).
+    columns:
+      - name: date_id
+        description: Integer surrogate key in YYYYMMDD format. Primary key for fact table joins.
+      - name: full_date
+        description: The calendar date (DATE type).
+      - name: day_of_month
+        description: Day number within the month (1–31).
+      - name: day_of_year
+        description: Day number within the year (1–366).
+      - name: day_of_week_num
+        description: Day of week as integer; 1=Sunday, 7=Saturday (BigQuery convention).
+      - name: day_name
+        description: Full day name (e.g. Monday).
+      - name: day_name_short
+        description: Abbreviated day name (e.g. Mon).
+      - name: week_of_year
+        description: ISO week number within the year (1–53).
+      - name: iso_year
+        description: ISO year corresponding to the ISO week (may differ from calendar year at year boundaries).
+      - name: month_number
+        description: Month number (1–12).
+      - name: month_name
+        description: Full month name (e.g. January).
+      - name: month_name_short
+        description: Abbreviated month name (e.g. Jan).
+      - name: year_month
+        description: Year and month formatted as YYYY-MM. Useful for monthly aggregations.
+      - name: quarter_number
+        description: Quarter number (1–4).
+      - name: quarter_name
+        description: Quarter label (e.g. Q1).
+      - name: year_quarter
+        description: Year and quarter formatted as YYYY-Q# (e.g. 2024-Q1).
+      - name: year
+        description: Calendar year (e.g. 2024).
+      - name: is_weekend
+        description: True if the date falls on Saturday or Sunday.
+      - name: is_weekday
+        description: True if the date falls on Monday through Friday.
+
+  - name: fct_maintenance_events
+    description: >
+      Fact table — one row per work order (all maintenance types, open and completed).
+      Grain: work order.
+
+      The single source of truth for maintenance KPIs. Combines the full work order
+      lifecycle from int_maintenance_events with cost data from int_downtime_costs
+      and MTBF interval data from int_asset_failures_mtbf.
+
+      Key Power BI measures:
+        MTBF            — AVERAGE(days_since_prev_event) filtered to maintenance_type = 'Corrective'
+        MTTR            — AVERAGE(downtime_hours) filtered to Corrective and is_completed = true
+        Completion rate — DIVIDE(COUNT is_completed = true, COUNT(*))
+        Downtime        — SUM(downtime_hours) for any asset / period / region slice
+        Total cost      — SUM(total_cost_eur) sliced by type, period, manufacturer, region
+
+      Date relationships: open_date_id and completion_date_id both join to dim_date.date_id.
+    columns:
+      - name: workorder_id
+        description: Unique identifier for the work order. Primary key.
+      - name: asset_id
+        description: Asset the work order was raised against. Foreign key to dim_asset.
+      - name: open_date
+        description: Date the work order was opened (failure onset for corrective events).
+      - name: open_date_id
+        description: YYYYMMDD surrogate key for open_date. Joins to dim_date.date_id.
+      - name: completion_date
+        description: Date the repair was completed. Null for open or pending work orders.
+      - name: completion_date_id
+        description: YYYYMMDD surrogate key for completion_date. Null for open work orders.
+      - name: maintenance_type
+        description: Type of maintenance activity — Corrective (reactive) or Preventive (planned).
+      - name: priority
+        description: Work order priority level (e.g. High, Medium, Low).
+      - name: maintenance_id
+        description: Linked maintenance log entry identifier. Null if no log exists yet.
+      - name: is_completed
+        description: True if a matching maintenance log entry exists with a completion date.
+      - name: days_to_close
+        description: Calendar days from open_date to completion_date. Null for incomplete events.
+      - name: downtime_hours
+        description: >
+          Hours the asset was offline during this event. Populated for completed corrective
+          repairs only. Use SUM for total downtime, AVERAGE for MTTR input.
+      - name: maintenance_cost_eur
+        description: Labour and maintenance cost for this event in EUR. Null for open work orders.
+      - name: spare_parts_cost_eur
+        description: >
+          Total spare parts cost consumed against this work order in EUR.
+          Zero for work orders with no parts usage; null for open work orders.
+      - name: total_parts_consumed
+        description: Total quantity of spare parts consumed. Zero if none used.
+      - name: total_cost_eur
+        description: Combined total of maintenance_cost_eur and spare_parts_cost_eur.
+      - name: failure_seq
+        description: >
+          Sequential failure number for this asset ordered by failure_date.
+          Populated for corrective work orders only; null for preventive.
+      - name: prev_event_date
+        description: >
+          Date of the preceding failure or installation_date for the first failure.
+          Populated for corrective work orders only.
+      - name: days_since_prev_event
+        description: >
+          Calendar days between this failure and the previous event (or installation).
+          The per-event MTBF input. Power BI measure: AVERAGE(days_since_prev_event)
+          filtered to Corrective = MTBF for any slice. Null for preventive work orders.
+
+  - name: fct_daily_asset_performance
+    description: >
+      Fact table — one row per asset per calendar day.
+      Grain: asset + date (day is the most atomic date level; Power BI rolls up
+      to week / month / quarter / year via dim_date).
+
+      Full outer join of int_asset_sensor_anomalies and int_asset_utilization.
+      Preserves days where only one source has data:
+        - Sensor readings without usage cycles (asset idle but monitored)
+        - Usage cycles without sensor readings (sensor gap or outage)
+
+      Key Power BI measures:
+        Utilisation rate  — AVERAGE(daily_utilization_rate) over any asset / period slice
+        Anomaly rate      — DIVIDE(SUM(anomaly_count), SUM(total_readings)) for weighted average
+                            Do NOT use AVERAGE(anomaly_rate) — use the ratio of sums
+        Runtime           — SUM(total_runtime_hours)
+        Load profile      — AVERAGE(avg_load_pct), MAX(peak_load_pct)
+
+      Date relationship: date_id joins to dim_date.date_id.
+    columns:
+      - name: asset_id
+        description: Asset identifier. Foreign key to dim_asset.
+      - name: performance_date
+        description: Calendar date of the performance record.
+      - name: date_id
+        description: YYYYMMDD surrogate key for performance_date. Joins to dim_date.date_id.
+      - name: total_readings
+        description: Total sensor readings recorded for this asset on this date. Null if no sensor data.
+      - name: anomaly_count
+        description: Readings that breached at least one operational threshold on this date.
+      - name: anomaly_rate
+        description: >
+          Proportion of readings flagged as anomalies (anomaly_count / total_readings).
+          Pre-computed daily rate — aggregate as DIVIDE(SUM(anomaly_count), SUM(total_readings))
+          across periods to avoid averaging a rate.
+      - name: high_temp_count
+        description: Readings where temperature exceeded 90°C on this date.
+      - name: high_vibration_count
+        description: Readings where vibration exceeded 4.5 mm/s (ISO 10816) on this date.
+      - name: high_pressure_count
+        description: Readings where pressure exceeded 10 bar on this date.
+      - name: total_cycles_active
+        description: Number of usage cycles active on this date. Null if no cycle data.
+      - name: total_runtime_minutes
+        description: Cumulative operating minutes attributed to this asset on this date.
+      - name: total_runtime_hours
+        description: Cumulative operating hours attributed to this asset on this date.
+      - name: avg_load_pct
+        description: Average load percentage across all cycles active on this date.
+      - name: peak_load_pct
+        description: Maximum load percentage recorded in any single cycle on this date.
+      - name: daily_utilization_rate
+        description: >
+          Runtime as a proportion of 1,440 available minutes (24h), capped at 1.0.
+          Assumes 24/7 availability. Values above 1.0 before capping indicate overlapping
+          cycles in the source, flagged by has_cycle_overlap.
+      - name: has_cycle_overlap
+        description: >
+          True when the sum of runtime minutes on this date exceeds 1,440 minutes,
+          indicating overlapping cycles in stg_usage_cycles — a source data quality flag.
+
+  - name: fct_spare_parts_consumption
+    description: >
+      Fact table — one row per spare part consumed per work order.
+      Grain: work order + part (most atomic; aggregates up to asset / period / part / maintenance type).
+
+      Links stg_spare_parts_usage to assets and dates via stg_work_orders.
+      The parts table has no direct asset_id or date; both are resolved through workorder_id
+      in int_spare_parts_utilization.
+
+      Key Power BI measures:
+        Parts burn rate  — SUM(quantity) by part_id, equipment_type, manufacturer, or period
+        Parts cost       — SUM(cost_eur) sliced by any dimension
+        Cost per event   — SUM(cost_eur) grouped by workorder_id
+        Corrective vs PM — filter on maintenance_type
+
+      Date relationship: date_id joins to dim_date.date_id.
+    columns:
+      - name: workorder_id
+        description: Work order in which the part was consumed.
+      - name: part_id
+        description: Unique identifier for the spare part.
+      - name: asset_id
+        description: Asset the work order was raised against. Foreign key to dim_asset.
+      - name: consumption_date
+        description: Date the work order was opened, used as the consumption date for time slicing.
+      - name: date_id
+        description: YYYYMMDD surrogate key for consumption_date. Joins to dim_date.date_id.
+      - name: maintenance_type
+        description: Type of maintenance associated with the work order (Corrective / Preventive).
+      - name: quantity
+        description: Units of this part consumed in this work order.
+      - name: cost_eur
+        description: Cost of this part usage in EUR.
