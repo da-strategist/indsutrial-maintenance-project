@@ -105,43 +105,6 @@ models:
       - name: daily_utilization_rate
         description: Runtime as a proportion of 1,440 available minutes. Assumes 24/7 availability.
 
-  - name: int_asset_health_status
-    description: >
-      Asset grain snapshot — one row per asset reflecting current overall health.
-      Aggregates from int_asset_failures_mtbf, int_asset_repairs_mttr,
-      int_asset_unplanned_downtime, and int_asset_sensor_anomalies into a single
-      composite view. Derives a health classification (Healthy / At Risk / Critical)
-      from combined failure, repair, and sensor signals.
-    columns:
-      - name: asset_id
-        description: Unique identifier for the asset.
-      - name: operational_status
-        description: Current status as recorded in the asset master (e.g. Active, Inactive).
-      - name: location_region
-        description: Geographic region where the asset is deployed.
-      - name: installation_date
-        description: Date the asset was commissioned.
-      - name: total_failures
-        description: Total corrective failure events recorded (all time).
-      - name: mtbf_days
-        description: Mean time between failures in days (all-time average).
-      - name: mttr_hours
-        description: Mean time to repair in hours (all-time average).
-      - name: total_downtime_hours
-        description: Cumulative downtime hours from all corrective repairs.
-      - name: total_unplanned_events
-        description: Total count of unplanned (corrective) work orders.
-      - name: high_priority_events
-        description: Count of unplanned events flagged as High priority.
-      - name: anomaly_rate
-        description: Proportion of all-time sensor readings flagged as anomalies.
-      - name: anomaly_count
-        description: Total anomalous sensor readings across all time.
-      - name: health_status
-        description: >
-          Derived classification: Critical (>= 5 failures, or MTTR >= 24h, or anomaly rate >= 10%),
-          At Risk (>= 2 failures, or MTTR >= 8h, or anomaly rate >= 5%), Healthy otherwise.
-
   - name: int_maintenance_events
     description: >
       Work order grain — one row per work order joined to its maintenance log entry.

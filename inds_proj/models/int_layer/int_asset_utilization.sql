@@ -14,6 +14,7 @@ with cycles as (
     from {{ ref('stg_usage_cycles') }}
     where cycle_start    is not null
         and duration_minutes is not null
+    order by asset_id, cycle_start, duration_minutes desc
 ),
 
 cycle_days as (
@@ -30,11 +31,10 @@ cycle_days as (
         generate_date_array(date(c.cycle_start), date(c.cycle_end))
     ) as day_date
 ),
-
 daily_runtime as (
     -- For each cycle-day row, compute only the minutes that fall within that calendar day
     -- Day window: midnight of day_date → midnight of day_date + 1
-    -- Overlap = least(cycle_end, day_end) - greatest(cycle_start, day_start)
+    -- Overlap = l(cycle_end, day_end) - greate(cycle_start, day_start)
     select
         asset_id,
         day_date,
@@ -45,22 +45,29 @@ daily_runtime as (
             minute
         ) as runtime_minutes_on_day
     from cycle_days
-    --order by asset_id, day_date asc, runtime_minutes_on_day desc
 ),
 
 daily_usage as (
     -- One row per asset per calendar date
-    -- daily_utilization_rate > 1.0 at this stage indicates genuinely overlapping cycles
-    -- for the same asset on the same day (a data quality issue, not a logic error)
+    -- has_cycle_overlap flags days where cycles overlap in time for the same asset —
+    -- a data quality issue in the source. The rate is capped at 1.0 on those days
+    -- to prevent the metric from misrepresenting utilisation in the mart/dashboard.
     select
         asset_id,
-        day_date                                                    as cycle_date,
-        count(*)                                                    as total_cycles_active,
-        sum(runtime_minutes_on_day)                                 as total_runtime_minutes,
-        round(sum(runtime_minutes_on_day) / 60.0, 2)               as total_runtime_hours,
-        round(avg(load_percentage), 2)                              as avg_load_pct,
-        max(load_percentage)                                        as peak_load_pct,
-        round(safe_divide(sum(runtime_minutes_on_day), 1440), 2)   as daily_utilization_rate
+        day_date                                                            as cycle_date,
+        count(*)                                                            as total_cycles_active,
+        sum(runtime_minutes_on_day)                                         as total_runtime_minutes,
+        round(sum(runtime_minutes_on_day) / 60.0, 2)                       as total_runtime_hours,
+        round(avg(load_percentage), 2)                                      as avg_load_pct,
+        max(load_percentage)                                                as peak_load_pct,
+        least(
+            round(safe_divide(sum(runtime_minutes_on_day), 1440), 2),
+            1.0
+        )                                                                   as daily_utilization_rate,
+        case
+            when sum(runtime_minutes_on_day) > 1440 then true
+            else false
+        end                                                                 as has_cycle_overlap
     from daily_runtime
     group by asset_id, day_date
 )
